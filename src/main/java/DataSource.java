@@ -26,11 +26,10 @@ public class DataSource implements Runnable {
 
     private static final int TIMESPAN = 15;     // expressed in mins
     private static final int SPEEDUP = 5000;
-    private static int SHORT_SLEEP = 10;		// expressed in ms
 
     private Jedis jedis;
     private String filename;
-    private int redisTimeout = 1800;
+    private int redisTimeout = 60000;
     private Gson gson;
     private Boolean hasHead;
 
@@ -131,7 +130,7 @@ public class DataSource implements Runnable {
             while (consumed == null){
 
                 try {
-                    Thread.sleep(SHORT_SLEEP);
+                    Thread.sleep(Configuration.SHORT_SLEEP);
                 } catch (InterruptedException e) { }
 
                 consumed = jedis.get(Configuration.REDIS_CONSUMED);
