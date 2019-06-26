@@ -2,7 +2,7 @@ import com.google.gson.Gson;
 import org.apache.storm.utils.Time;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
-import utils.Configuration;
+import utils.Variable;
 import utils.LinesBatch;
 
 import java.io.BufferedReader;
@@ -44,8 +44,8 @@ public class DataSource implements Runnable {
     }
 
     private void initialize(){
-        jedis.del(Configuration.REDIS_CONSUMED);
-        jedis.del(Configuration.REDIS_DATA);
+        jedis.del(Variable.REDIS_CONSUMED);
+        jedis.del(Variable.REDIS_DATA);
     }
 
     @Override
@@ -113,14 +113,14 @@ public class DataSource implements Runnable {
 
     private void send(LinesBatch linesBatch) throws JedisConnectionException {
 
-        String consumed = jedis.get(Configuration.REDIS_CONSUMED);
-        String data = jedis.get(Configuration.REDIS_DATA);
+        String consumed = jedis.get(Variable.REDIS_CONSUMED);
+        String data = jedis.get(Variable.REDIS_DATA);
 
         /* Check erroneous situation */
         if (data != null && consumed != null){
 
-            jedis.del(Configuration.REDIS_CONSUMED);
-            jedis.del(Configuration.REDIS_DATA);
+            jedis.del(Variable.REDIS_CONSUMED);
+            jedis.del(Variable.REDIS_DATA);
 
         }
 
@@ -130,21 +130,21 @@ public class DataSource implements Runnable {
             while (consumed == null){
 
                 try {
-                    Thread.sleep(Configuration.SHORT_SLEEP);
+                    Thread.sleep(Variable.SHORT_SLEEP);
                 } catch (InterruptedException e) { }
 
-                consumed = jedis.get(Configuration.REDIS_CONSUMED);
+                consumed = jedis.get(Variable.REDIS_CONSUMED);
 
             }
 
         }
 
         /* Remove lock from Redis */
-        jedis.del(Configuration.REDIS_CONSUMED);
+        jedis.del(Variable.REDIS_CONSUMED);
 
         /* Send data */
         String serializedBatch = gson.toJson(linesBatch);
-        jedis.set(Configuration.REDIS_DATA, serializedBatch);
+        jedis.set(Variable.REDIS_DATA, serializedBatch);
 
     }
 
@@ -169,8 +169,9 @@ public class DataSource implements Runnable {
          * java -jar SABDProject2-1.0.jar DataSource [dataset] [redis host ip] [boolean hasHeader]
          */
 
-        String file = "/data/Comments_jan-apr2018.csv";
-        String redisUrl = "localhost";
+        String file = Variable.FILE;
+        String redisUrl = Variable.REDIS_URL;
+        int redisPort = Variable.REDIS_PORT;
         Boolean hasHeader = Boolean.TRUE;
 
         if (args.length > 2) {
@@ -182,7 +183,8 @@ public class DataSource implements Runnable {
                 e.printStackTrace();
             }
         }
-		DataSource fill = new DataSource(file, redisUrl, 6379, hasHeader);
+
+		DataSource fill = new DataSource(file, redisUrl, redisPort, hasHeader);
         Thread th1 = new Thread(fill);
         th1.start();
     }

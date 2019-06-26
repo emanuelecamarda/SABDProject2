@@ -8,7 +8,7 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
-import utils.Configuration;
+import utils.Variable;
 import utils.LinesBatch;
 import org.apache.storm.topology.base.BaseRichSpout;
 
@@ -22,8 +22,8 @@ public class DataSourceSpout extends BaseRichSpout {
 
     private static final long serialVersionUID = 1L;
 
-    String redisUrl 	= "localhost";
-    int redisPort 		= 6379;
+    String redisUrl;
+    int redisPort;
     int redisTimeout 	= 60000;
     static long msgId 	= 0;
     Jedis jedis;
@@ -47,16 +47,16 @@ public class DataSourceSpout extends BaseRichSpout {
         try {
 
             // try get data from redis
-            String data = jedis.get(Configuration.REDIS_DATA);
+            String data = jedis.get(Variable.REDIS_DATA);
             while (data == null){
                 try {
-                    Thread.sleep(Configuration.SHORT_SLEEP);
+                    Thread.sleep(Variable.SHORT_SLEEP);
                 } catch (InterruptedException e) { }
-                data = jedis.get(Configuration.REDIS_DATA);
+                data = jedis.get(Variable.REDIS_DATA);
             }
 
             /* Remove file from Redis */
-            jedis.del(Configuration.REDIS_DATA);
+            jedis.del(Variable.REDIS_DATA);
 
             /* Send data from spout */
             LinesBatch linesBatch = gson.fromJson(data, LinesBatch.class);
@@ -72,7 +72,7 @@ public class DataSourceSpout extends BaseRichSpout {
                 this._collector.emit(values, msgId);
             }
 
-            jedis.set(Configuration.REDIS_CONSUMED, "true");
+            jedis.set(Variable.REDIS_CONSUMED, "true");
 
         } catch (JedisConnectionException e) {
             e.printStackTrace();
