@@ -1,9 +1,9 @@
-import nodes.CommentCounterBolt;
-import nodes.DataSourceSpout;
-import nodes.FilterQ1Bolt;
+import nodes.*;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.tuple.Fields;
 import utils.Variable;
+
+import static utils.Variable.TOP_Q1;
 
 public class Topology {
 
@@ -47,8 +47,18 @@ public class Topology {
         builder.setBolt("filterQ1", new FilterQ1Bolt(), 5)
                 .shuffleGrouping("datasource");
 
-        builder.setBolt("CommentCounter1HourWindow", new CommentCounterBolt(1), 12)
+        builder.setBolt("commentCounter1HourWindow", new CommentCounterBolt(1), 12)
                 .fieldsGrouping("filterQ1", new Fields(FilterQ1Bolt.F_ARTICLE_ID));
+
+        builder.setBolt("intermediateRanking1HourWindow", new IntermediateRankingBolt(TOP_Q1), 6)
+                .fieldsGrouping("commentCounter1HourWindow", new Fields(CommentCounterBolt.F_COUNT));
+
+        builder.setBolt("globalRanking1HourWindow", new GlobalRankingBolt(TOP_Q1), 1)
+                .globalGrouping("intermediateRanking1HourWindow");
+
+        builder.setBolt("exporter1HourWindowQ1", new ExporterQ1(Variable.RABBITMQ_HOST, Variable.RABBITMQ_USER,
+                Variable.RABBITMQ_PASS, Variable.RABBITMQ_QUEUE_Q1_1HOUR), 1)
+                .shuffleGrouping("globalRanking1HourWindow");
 
 //        builder.setBolt("metronome", new Metronome())
 //                .setNumTasks(numTasksMetronome)

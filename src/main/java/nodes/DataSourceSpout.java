@@ -1,6 +1,7 @@
 package nodes;
 
 import com.google.gson.Gson;
+import org.apache.log4j.Logger;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -16,11 +17,12 @@ import java.util.Map;
 
 public class DataSourceSpout extends BaseRichSpout {
 
-    public static final String F_DATA 		=	"RowString";
-    public static final String F_MSGID		= 	"MSGID";
-    public static final String F_TIMESTAMP 	= 	"timestamp";
+    public static final String F_DATA 		    =	"RowString";
+    public static final String F_MSGID		    = 	"MSGID";
+    public static final String F_TIMESTAMP_PROC = 	"execTimestamp";
 
     private static final long serialVersionUID = 1L;
+    private static final Logger LOG = Logger.getLogger(DataSourceSpout.class);
 
     String redisUrl;
     int redisPort;
@@ -62,13 +64,13 @@ public class DataSourceSpout extends BaseRichSpout {
             LinesBatch linesBatch = gson.fromJson(data, LinesBatch.class);
             String now = String.valueOf(System.currentTimeMillis());
 
-            // TODO è necessario mantenere id e ts dei messaggi inviati??
             for (String row : linesBatch.getLines()) {
                 msgId++;
                 Values values = new Values();
                 values.add(Long.toString(msgId));
                 values.add(row);
                 values.add(now);
+                LOG.debug("Sending row = \"" + row + "\"");
                 this._collector.emit(values, msgId);
             }
 
@@ -82,7 +84,7 @@ public class DataSourceSpout extends BaseRichSpout {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields(F_MSGID, F_DATA, F_TIMESTAMP));
+        declarer.declare(new Fields(F_MSGID, F_DATA, F_TIMESTAMP_PROC));
     }
 
     @Override

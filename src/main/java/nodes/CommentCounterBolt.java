@@ -20,9 +20,9 @@ public class CommentCounterBolt extends BaseRichBolt {
      * statistics.
      */
 
-    private static final String F_ARTICLE_ID    = "articleID";
-    private static final String F_COUNT         = "count";
-    private static final String F_TIMESTAMP     = "timestamp";
+    public static final String F_ARTICLE_ID    = "articleID";
+    public static final String F_COUNT         = "count";
+    public static final String F_TIMESTAMP     = "timestamp";
     private static final Logger LOG = Logger.getLogger(CommentCounterBolt.class);
     private static final int DEFAULT_SLIDING_WINDOW_IN_HOUR = 24; // 24 hour window
     private final TumblingWindowCounter<Object> counter;
@@ -65,6 +65,7 @@ public class CommentCounterBolt extends BaseRichBolt {
         for (Map.Entry<Object, Long> entry : counts.entrySet()) {
             Object obj = entry.getKey();
             Long count = entry.getValue();
+            LOG.debug("Emitting tuple: ( articleID=" + obj + ", count=" + count + " )");
             _collector.emit(new Values(obj, count, timestampStart));
         }
     }
