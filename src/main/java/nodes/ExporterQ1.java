@@ -9,7 +9,6 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import utils.RabbitMQManager;
 import utils.Rankable;
-import utils.RankableObjectWithFields;
 import utils.Rankings;
 
 import java.util.Map;
@@ -19,20 +18,23 @@ public class ExporterQ1 extends BaseRichBolt {
     private static final long serialVersionUID = 1L;
     private OutputCollector collector;
     private static final Logger LOG = Logger.getLogger(ExporterQ1.class);
+    public static final String F_OUTPUT_RAW = "outputRaw";
 
     private RabbitMQManager rabbitmq;
     private String rabbitMqHost;
     private String rabbitMqUsername;
     private String rabbitMqPassword;
     private String defaultQueue;
+    private int topN;
 
     public ExporterQ1(String rabbitMqHost, String rabbitMqUsername, String rabbitMqPassword,
-                                String defaultQueue) {
+                                String defaultQueue, int topN) {
         super();
         this.rabbitMqHost = rabbitMqHost;
         this.rabbitMqUsername = rabbitMqUsername;
         this.rabbitMqPassword = rabbitMqPassword;
         this.defaultQueue = defaultQueue;
+        this.topN = topN;
     }
 
     @Override
@@ -47,27 +49,34 @@ public class ExporterQ1 extends BaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
 
-        LOG.info("Exp: rec = 0:" + tuple.getValue(0));
-        Rankings rankings  = (Rankings) tuple.getValue(0);
+        LOG.info("Exp: rec1 = " + tuple.getValueByField(GlobalRankingBolt.F_RANKINGS));
+        Rankings rankings  = (Rankings) tuple.getValueByField(GlobalRankingBolt.F_RANKINGS);
 
         LOG.info("Exp: rec2 = " + rankings);
         LOG.info("Exp: rec3 = " + rankings.getRankings());
 
-        String res = rankings.getRankings().get(0).getFields().get(0).toString();
-        for (RankableObjectWithFields r : rankings.getRankings()){
-            res += ", " + r.getObject() + ", " + r.getCount();
+        int i = 0;
+        String raw = tuple.getLongByField(GlobalRankingBolt.F_START_TIMESTAMP).toString();
+        for (Rankable r : rankings.getRankings()){
+            raw += "," + r.getObject() + "," + r.getCount();
+            i++;
         }
-        res+="\n";
+        while (i != this.topN) {
+            raw += ",,";
+            i++;
+        }
+        raw+="\n";
 
-        LOG.info("Exp: rec4 = " + res);
-        rabbitmq.send(res);
+        LOG.info("Exp: rec4 = " + raw);
+        rabbitmq.send(raw);
+        collector.ack(tuple);
 
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
 
-        outputFieldsDeclarer.declare(new Fields("word"));
+        outputFieldsDeclarer.declare(new Fields(F_OUTPUT_RAW));
 
     }
 

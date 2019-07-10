@@ -43,7 +43,7 @@ public final class TumblingWindowCounter<T> implements Serializable {
         this.batchFinalDate.add(Calendar.HOUR, windowLengthInHours);
     }
 
-    public boolean checkShiftWindow(Tuple tuple) {
+    public boolean  checkShiftWindow(Tuple tuple) {
         Long createTime = Long.parseLong(tuple.getStringByField(FilterQ1Bolt.F_CREATE_TIME));
         if (createTime < this.batchFinalDate.getTimeInMillis() / 1000)
             return false;

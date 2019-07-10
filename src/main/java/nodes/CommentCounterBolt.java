@@ -36,7 +36,7 @@ public class CommentCounterBolt extends BaseRichBolt {
 
     public CommentCounterBolt(int windowLengthInHours) {
         this.windowLengthInHours = windowLengthInHours;
-        counter = new TumblingWindowCounter<>(this.windowLengthInHours);
+        this.counter = new TumblingWindowCounter<>(this.windowLengthInHours);
     }
 
     @Override

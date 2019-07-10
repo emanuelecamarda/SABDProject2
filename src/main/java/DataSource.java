@@ -2,6 +2,7 @@ import com.google.gson.Gson;
 import org.apache.storm.utils.Time;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
+import utils.TConf;
 import utils.Variable;
 import utils.LinesBatch;
 
@@ -25,7 +26,7 @@ public class DataSource implements Runnable {
      */
 
     private static final int TIMESPAN = 15;     // expressed in mins
-    private static final int SPEEDUP = 5000;
+    private static final int SPEEDUP = 800;
 
     private Jedis jedis;
     private String filename;
@@ -77,13 +78,15 @@ public class DataSource implements Runnable {
                 System.out.println("Sending " + linesBatch.getLines().size() + " lines");
 
                 /* batch is concluded and has to be sent */
-                send(linesBatch);
+                if (linesBatch.getLines().size() != 0)
+                    send(linesBatch);
 
                 /* sleep if needed */
-                long sendingTime = Time.currentTimeMillis() - firstSendingTime;
+                long sendingTime = System.currentTimeMillis() - firstSendingTime;
                 if (sendingTime < (TIMESPAN * 60 * 1000) / SPEEDUP) {
                     long timeToSleep = (TIMESPAN * 60 * 1000) / SPEEDUP - sendingTime;
                     try {
+                        System.out.println("Go to sleep for " + timeToSleep + " ms");
                         Thread.sleep(timeToSleep);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
@@ -101,7 +104,8 @@ public class DataSource implements Runnable {
             e.printStackTrace();
         }
 
-        if (br != null){
+        System.out.println("Finished sending data.");
+        if (br != null){  //TODO == o != ?
             try {
                 br.close();
             } catch (IOException e) {
@@ -166,12 +170,13 @@ public class DataSource implements Runnable {
     public static void main(String[] args) {
         /*
          * Usage:
-         * java -jar SABDProject2-1.0.jar DataSource [dataset] [redis host ip] [boolean hasHeader]
+         * java -jar SABDProject2-1.0.jar DataSource [dataset] [redis host] [boolean hasHeader]
          */
 
         String file = Variable.FILE;
-        String redisUrl = Variable.REDIS_URL;
-        int redisPort = Variable.REDIS_PORT;
+        TConf config = new TConf();
+        String redisUrl	= config.getString(TConf.REDIS_URL);
+        int redisPort = config.getInteger(TConf.REDIS_PORT);
         Boolean hasHeader = Boolean.TRUE;
 
         if (args.length > 2) {

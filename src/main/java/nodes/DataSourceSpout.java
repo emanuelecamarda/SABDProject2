@@ -71,6 +71,7 @@ public class DataSourceSpout extends BaseRichSpout {
                 values.add(row);
                 values.add(now);
                 LOG.debug("Sending row = \"" + row + "\"");
+                System.out.println("Sending row = \"" + row + "\"");
                 this._collector.emit(values, msgId);
             }
 

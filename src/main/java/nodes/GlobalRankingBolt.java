@@ -1,7 +1,6 @@
 package nodes;
 
 import org.apache.log4j.Logger;
-import org.apache.storm.Config;
 import org.apache.storm.topology.BasicOutputCollector;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseBasicBolt;
@@ -9,35 +8,28 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 import utils.Rankings;
-import utils.TupleHelper;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public final class GlobalRankingBolt extends BaseBasicBolt {
 
     private static final long serialVersionUID = -8447525895532302198L;
-
-    private static final int DEFAULT_EMIT_FREQUENCY_IN_SECONDS = 2;
     private static final Logger LOG = Logger.getLogger(GlobalRankingBolt.class);
+    public static final String F_RANKINGS = "rankings";
+    public static final String F_START_TIMESTAMP = "startTimestamp";
+    public static final int DEFAULT_TOP_N = 3;
 
-    private int emitFrequencyInSeconds;
+    private int topN;
+    private static long lastTimestamp = 0;
     private Rankings rankings;
 
-    public GlobalRankingBolt(int topN) {
-        this(topN, DEFAULT_EMIT_FREQUENCY_IN_SECONDS);
-    }
+    public GlobalRankingBolt() { this(DEFAULT_TOP_N); }
 
-    public GlobalRankingBolt(int topN, int emitFrequencyInSeconds) {
+    public GlobalRankingBolt(int topN) {
 
         if (topN < 1) {
             throw new IllegalArgumentException("topN must be >= 1 (you requested " + topN + ")");
         }
-        if (emitFrequencyInSeconds < 1) {
-            throw new IllegalArgumentException(
-                    "The emit frequency must be >= 1 seconds (you requested " + emitFrequencyInSeconds + " seconds)");
-        }
-        this.emitFrequencyInSeconds = emitFrequencyInSeconds;
+
+        this.topN = topN;
         rankings = new Rankings(topN);
 
     }
@@ -47,27 +39,33 @@ public final class GlobalRankingBolt extends BaseBasicBolt {
      */
     @Override
     public final void execute(Tuple tuple, BasicOutputCollector collector) {
-        if (TupleHelper.isTickTuple(tuple)) {
-            LOG.debug("Received tick tuple, triggering emit of current rankings");
-            collector.emit(new Values(rankings.copy()));
-            LOG.debug("Rankings: " + rankings);
+
+        Rankings rankingsToBeMerged = (Rankings) tuple.getValueByField(IntermediateRankingBolt.F_RANKINGS);
+        long currentTimestamp = tuple.getLongByField(IntermediateRankingBolt.F_START_TIMESTAMP);
+        if (lastTimestamp == 0)
+            lastTimestamp = currentTimestamp;
+
+        if (lastTimestamp < currentTimestamp) {
+            LOG.info("Received tick tuple, triggering emit of current rankings");
+            collector.emit(new Values(rankings.copy(), lastTimestamp));
+            LOG.info("Rankings: " + rankings);
+            lastTimestamp = currentTimestamp;
+
+            this.rankings = new Rankings(topN);
+            LOG.info("rankings: " + rankingsToBeMerged);
+            rankings.updateWith(rankingsToBeMerged);
+            rankings.pruneZeroCounts();
         } else {
-            Rankings rankingsToBeMerged = (Rankings) tuple.getValue(0);
+            LOG.info("rankings: " + rankingsToBeMerged);
             rankings.updateWith(rankingsToBeMerged);
             rankings.pruneZeroCounts();
         }
+
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields("rankings"));
-    }
-
-    @Override
-    public Map<String, Object> getComponentConfiguration() {
-        Map<String, Object> conf = new HashMap<>();
-        conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, emitFrequencyInSeconds);
-        return conf;
+        declarer.declare(new Fields(F_RANKINGS, F_START_TIMESTAMP));
     }
 
 }

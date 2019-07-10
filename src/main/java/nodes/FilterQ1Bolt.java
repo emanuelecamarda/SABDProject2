@@ -45,8 +45,9 @@ public class FilterQ1Bolt extends BaseRichBolt {
         String[] data = SEPARATOR.split(rawData);
         Values values = new Values();
         values.add(data[1]);    // Article ID
-        values.add(data[5]);    // Comment creation timestamp
+        values.add(Long.parseLong(data[5]));    // Comment creation timestamp
         LOG.debug("Sending tuple: ( articleID=" + data[1] + ", createTime=" + data[5] + " )");
+        System.out.println("Sending tuple: ( articleID=" + data[1] + ", createTime=" + data[5] + " )");
         _collector.emit(values);
         _collector.ack(tuple);
     }

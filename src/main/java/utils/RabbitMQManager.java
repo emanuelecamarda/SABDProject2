@@ -158,24 +158,33 @@ public class RabbitMQManager {
 
     }
 
-    public boolean createDetachedReaderOnFile(String queue, String filePath) {
+    public boolean createDetachedReaderOnFile(String queue, String filePath, String header) {
 
         try {
 
             reopenConnectionIfNeeded();
-
+            final String outputFilePath = filePath;
             Channel channel = connection.createChannel();
+            FileWriter writer = new FileWriter(filePath);
+            try {
+                writer.append(header).append(System.getProperty("line.separator"));
+                writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
             Consumer consumer = new DefaultConsumer(channel) {
                 @Override
                 public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties,
                                            byte[] body) throws IOException {
                     String message = new String(body, "UTF-8");
-                    FileWriter writer = new FileWriter(filePath);
+                    System.out.println(message);
+                    FileWriter writer = new FileWriter(outputFilePath);
                     writer.append(message).append(System.getProperty("line.separator"));
                     writer.close();
                 }
             };
+
             channel.basicConsume(queue, true, consumer);
 
             return true;

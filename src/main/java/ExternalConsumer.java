@@ -1,24 +1,24 @@
-import org.apache.storm.shade.org.apache.commons.io.output.FileWriterWithEncoding;
-import org.apache.storm.tuple.Values;
 import utils.RabbitMQManager;
+import utils.TConf;
 import utils.Variable;
-
-import java.io.FileWriter;
-import java.io.IOException;
 
 public class ExternalConsumer {
 
     public static void main(String[] args) throws InterruptedException {
         /*
          * Usage:
-         * java -cp <jar class path> ExternalConsumer [query number] [window size]
+         * java -cp <jar class path> ExternalConsumer <query number> <window size>
          */
 
         int queryNumber = 0, windowSize = 0;
         String rabbitMQQueue = "", outputFile = "", header;
+        TConf config = new TConf();
+        String rabbitMqHost 	= config.getString(TConf.RABBITMQ_HOST);
+        String rabbitMqUsername = config.getString(TConf.RABBITMQ_USERNAME);
+        String rabbitMqPassword	= config.getString(TConf.RABBITMQ_PASSWORD);
 
         if (args.length != 2) {
-            System.err.println("Usage: java -cp <jar class path> ExternalConsumer [query number] [window size]");
+            System.err.println("Usage: java -cp <jar class path> ExternalConsumer <query number> <window size>");
         }
         try {
             queryNumber = Integer.parseInt(args[0]);
@@ -36,7 +36,6 @@ public class ExternalConsumer {
             System.exit(1);
         }
 
-        // TODO output file
         if (queryNumber == 1) {
             header = "ts, artID_1, nCmnt_1, artID_2, nCmnt_2, artID_3, nCmnt_3";
             switch (windowSize) {
@@ -72,18 +71,13 @@ public class ExternalConsumer {
             }
         }
 
-        RabbitMQManager rmq = new RabbitMQManager(Variable.RABBITMQ_HOST, Variable.RABBITMQ_USER,
-                Variable.RABBITMQ_PASS, rabbitMQQueue);
+        System.out.println("===================================================== ");
+        System.out.println("Variable:");
+        System.out.println("RabbitMQ: " + rabbitMqHost + " (user: " + rabbitMqUsername + ", " + rabbitMqPassword + ")");
+        System.out.println("===================================================== ");
 
-        try {
-            FileWriter writer = new FileWriter(outputFile);
-            writer.append(header).append(System.getProperty("line.separator"));
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        rmq.createDetachedReaderOnFile(rabbitMQQueue, outputFile);	//RabbitMQ reader
+        RabbitMQManager rmq = new RabbitMQManager(rabbitMqHost, rabbitMqUsername, rabbitMqPassword, rabbitMQQueue);
+        rmq.createDetachedReaderOnFile(rabbitMQQueue, outputFile, header);	//RabbitMQ reader
 
         while(true){
             Thread.sleep(500);

@@ -1,6 +1,13 @@
+import clojure.lang.RT;
 import nodes.*;
+import org.apache.storm.Config;
+import org.apache.storm.LocalCluster;
+import org.apache.storm.StormSubmitter;
 import org.apache.storm.topology.TopologyBuilder;
+import org.apache.storm.topology.base.BaseWindowedBolt;
 import org.apache.storm.tuple.Fields;
+import org.apache.storm.utils.Utils;
+import utils.TConf;
 import utils.Variable;
 
 import static utils.Variable.TOP_Q1;
@@ -9,34 +16,27 @@ public class Topology {
 
     public static void main(String[] args) throws Exception {
 
-//        TConf config = new TConf();
-//        String redisUrl			= config.getString(TConf.REDIS_URL);
-//        int redisPort 			= config.getInteger(TConf.REDIS_PORT);
-//        int numTasks 			= config.getInteger(TConf.NUM_TASKS);
-//        int numTasksMetronome   = 1;  // each task of the metronome generate a flood of messages
-//        int numTasksGlobalRank  = 1;
-//        String rabbitMqHost 	= config.getString(TConf.RABBITMQ_HOST);
-//        String rabbitMqUsername = config.getString(TConf.RABBITMQ_USERNAME);
-//        String rabbitMqPassword	= config.getString(TConf.RABBITMQ_PASSWORD);
-//
-//
-//        System.out.println("===================================================== ");
-//        System.out.println("Variable:");
-//        System.out.println("Redis: " + redisUrl + ":" + redisPort);
-//        System.out.println("RabbitMQ: " + rabbitMqHost + " (user: " + rabbitMqUsername + ", " + rabbitMqPassword + ")");
-//        System.out.println("Tasks:" + numTasks);
-//        System.out.println("===================================================== ");
-//
+        TConf config = new TConf();
+        String redisUrl			= config.getString(TConf.REDIS_URL);
+        int redisPort 			= config.getInteger(TConf.REDIS_PORT);
+        String rabbitMqHost 	= config.getString(TConf.RABBITMQ_HOST);
+        String rabbitMqUsername = config.getString(TConf.RABBITMQ_USERNAME);
+        String rabbitMqPassword	= config.getString(TConf.RABBITMQ_PASSWORD);
+
+
+        System.out.println("===================================================== ");
+        System.out.println("Variable:");
+        System.out.println("Redis: " + redisUrl + ":" + redisPort);
+        System.out.println("RabbitMQ: " + rabbitMqHost + " (user: " + rabbitMqUsername + ", " + rabbitMqPassword + ")");
+        System.out.println("===================================================== ");
+
         /*
          * Usage:
          * /apache-storm-1.1.0/bin/storm jar /data/SABDProject2-1.0-jar-with-dependencies.jar Topology [redis url]
          */
 
-        String redisUrl = Variable.REDIS_URL;
-        int redisPort = Variable.REDIS_PORT;
-
-        if (args.length > 0) {
-            redisUrl = args[0];
+        if (args.length > 1) {
+            redisUrl = args[1];
         }
 
         /* Build topology */
@@ -47,17 +47,27 @@ public class Topology {
         builder.setBolt("filterQ1", new FilterQ1Bolt(), 5)
                 .shuffleGrouping("datasource");
 
-        builder.setBolt("commentCounter1HourWindow", new CommentCounterBolt(1), 12)
+//        builder.setBolt("commentCounter1HourWindow", new CommentCounterBolt(1), 12)
+//                .fieldsGrouping("filterQ1", new Fields(FilterQ1Bolt.F_ARTICLE_ID));
+
+//        builder.setBolt("commentCounter1HourWindow", new CommentCounterWindowedBolt()
+//                .withTumblingWindow(BaseWindowedBolt.Duration.hours(1)).withTimestampField(FilterQ1Bolt.F_CREATE_TIME),
+//                12)
+//                .fieldsGrouping("filterQ1", new Fields(FilterQ1Bolt.F_ARTICLE_ID));
+
+        builder.setBolt("commentCounter1HourWindow",
+                new MyCommentCounterBolt(1, redisUrl, redisPort), 12)
                 .fieldsGrouping("filterQ1", new Fields(FilterQ1Bolt.F_ARTICLE_ID));
 
-        builder.setBolt("intermediateRanking1HourWindow", new IntermediateRankingBolt(TOP_Q1), 6)
+        builder.setBolt("intermediateRanking1HourWindow", new IntermediateRankingBolt(TOP_Q1, redisUrl, redisPort),
+                6)
                 .fieldsGrouping("commentCounter1HourWindow", new Fields(CommentCounterBolt.F_COUNT));
 
         builder.setBolt("globalRanking1HourWindow", new GlobalRankingBolt(TOP_Q1), 1)
                 .globalGrouping("intermediateRanking1HourWindow");
 
-        builder.setBolt("exporter1HourWindowQ1", new ExporterQ1(Variable.RABBITMQ_HOST, Variable.RABBITMQ_USER,
-                Variable.RABBITMQ_PASS, Variable.RABBITMQ_QUEUE_Q1_1HOUR), 1)
+        builder.setBolt("exporter1HourWindowQ1", new ExporterQ1(rabbitMqHost, rabbitMqUsername, rabbitMqPassword,
+                Variable.RABBITMQ_QUEUE_Q1_1HOUR, TOP_Q1), 1)
                 .shuffleGrouping("globalRanking1HourWindow");
 
 //        builder.setBolt("metronome", new Metronome())
@@ -87,33 +97,24 @@ public class Topology {
 //
 //        StormTopology stormTopology = builder.createTopology();
 //
-//        /* Create configurations */
-//        Config conf = new Config();
-//        conf.setDebug(false);
-//        /* number of workers to create for current topology */
-//        conf.setNumWorkers(3);
-//
-//
-//        /* Update numWorkers using command-line received parameters */
-//        if (args.length == 2){
-//            try{
-//                if (args[1] != null){
-//                    int numWorkers = Integer.parseInt(args[1]);
-//                    conf.setNumWorkers(numWorkers);
-//                    System.out.println("Number of workers to generate for current topology set to: " + numWorkers);
-//                }
-//            } catch (NumberFormatException nf){}
-//        }
-//
-//        // local
-////		LocalCluster cluster = new LocalCluster();
-////        cluster.submitTopology("debs", conf, stormTopology);
-////        Utils.sleep(100000);
-////        cluster.killTopology("debs");
-////        cluster.shutdown();
-//
-//        // cluster
-//        StormSubmitter.submitTopology(args[0], conf, stormTopology);
+        /* Create configurations */
+        Config conf = new Config();
+        conf.setDebug(true);
+
+        // local
+        if (args.length == 0) {
+            conf.setMaxTaskParallelism(3);
+            LocalCluster cluster = new LocalCluster();
+            cluster.submitTopology("query1", conf, builder.createTopology());
+            Utils.sleep(100000);
+            cluster.killTopology("query1");
+            cluster.shutdown();
+        } else {
+            // cluster
+            /* number of workers to create for current topology */
+            conf.setNumWorkers(3);
+            StormSubmitter.submitTopologyWithProgressBar(args[0], conf, builder.createTopology());
+        }
 
     }
 

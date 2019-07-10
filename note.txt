@@ -1,0 +1,8 @@
+    - Log files are saved from storm in the directories /logs.
+        In particular for workers, log are save in /logs/workers-artifacts/query1-1-1562341712/6700/worker.log
+
+    - TODO:
+        - rivedere ExternalConsumer per far si che scriva i risultati su file
+        - capire perchè timestamp viene esportato errato
+        - aggiungere le finestre di 24 ore e 7 giorni
+        - iniziare a scrivere la query2

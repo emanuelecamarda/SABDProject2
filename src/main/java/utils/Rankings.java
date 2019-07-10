@@ -13,7 +13,7 @@ public class Rankings implements Serializable {
     private static final int DEFAULT_COUNT = 10;
 
     private final int maxSize;
-    private final List<RankableObjectWithFields> rankedItems = Lists.newArrayList();
+    private final List<Rankable> rankedItems = Lists.newArrayList();
 
     public Rankings() {
         this(DEFAULT_COUNT);
@@ -58,21 +58,21 @@ public class Rankings implements Serializable {
      * @return a somewhat defensive copy of ranked items
      *
      */
-    public List<RankableObjectWithFields> getRankings() {
-        List<RankableObjectWithFields> copy = Lists.newLinkedList();
-        for (RankableObjectWithFields r: rankedItems) {
+    public List<Rankable> getRankings() {
+        List<Rankable> copy = Lists.newLinkedList();
+        for (Rankable r: rankedItems) {
             copy.add(r.copy());
         }
         return ImmutableList.copyOf(copy);
     }
 
     public void updateWith(Rankings other) {
-        for (RankableObjectWithFields r : other.getRankings()) {
+        for (Rankable r : other.getRankings()) {
             updateWith(r);
         }
     }
 
-    public void updateWith(RankableObjectWithFields r) {
+    public void updateWith(Rankable r) {
         synchronized(rankedItems) {
             addOrReplace(r);
             rerank();
@@ -80,7 +80,7 @@ public class Rankings implements Serializable {
         }
     }
 
-    private void addOrReplace(RankableObjectWithFields r) {
+    private void addOrReplace(Rankable r) {
         Integer rank = findRankOf(r);
         if (rank != null) {
             rankedItems.set(rank, r);
@@ -90,7 +90,7 @@ public class Rankings implements Serializable {
         }
     }
 
-    private Integer findRankOf(RankableObjectWithFields r) {
+    private Integer findRankOf(Rankable r) {
         Object tag = r.getObject();
         for (int rank = 0; rank < rankedItems.size(); rank++) {
             Object cur = rankedItems.get(rank).getObject();
@@ -126,6 +126,12 @@ public class Rankings implements Serializable {
             }
         }
     }
+
+    /**
+     * Removes all object in rankings
+     * @return
+     */
+    public void removeAll() { this.rankedItems.removeAll(rankedItems); }
 
     public String toString() {
         return rankedItems.toString();
