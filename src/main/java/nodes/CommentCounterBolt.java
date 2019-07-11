@@ -82,8 +82,13 @@ public class CommentCounterBolt extends BaseRichBolt {
             // Do nothing
         } else { // not tick tuple
 
-           if (lastStartTimestamp == 0)
+            if (lastStartTimestamp == 0) {
                 lastStartTimestamp = window.getStartTimestamp();
+                while (window.getEndTimestamp() < tuple.getLongByField(FilterQ1Bolt.F_CREATE_TIME)) {
+                    window.moveForward();
+                    lastStartTimestamp = window.getStartTimestamp();
+                }
+            }
 
             if (lastStartTimestamp + 3600 * windowLengthInHours < tuple.getLongByField(FilterQ1Bolt.F_CREATE_TIME)) {
                 LOG.info("Triggering current window tuple.");

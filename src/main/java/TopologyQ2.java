@@ -75,7 +75,7 @@ public class TopologyQ2 {
         // ------------------------------- Window 1 Month -----------------------------------
 
         builder.setBolt("intermediateCounter1MonthWindow",
-                new IntermediateCounterBolt(24 * 7 * 30, redisUrl, redisPort, Variable.REDIS_INTER_COUNTER_1MONTH),
+                new IntermediateCounterBolt(24 * 30, redisUrl, redisPort, Variable.REDIS_INTER_COUNTER_1MONTH),
                 8)
                 .fieldsGrouping("filterQ2", new Fields(FilterQ2Bolt.F_ARTICLE_ID));
 

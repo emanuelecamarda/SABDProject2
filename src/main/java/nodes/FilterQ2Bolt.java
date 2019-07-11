@@ -34,13 +34,8 @@ public class FilterQ2Bolt extends BaseRichBolt {
         String rawData 	= tuple.getStringByField(DataSourceSpout.F_DATA);
 
         /* Do NOT emit if the EOF has been reached */
-        if (rawData == null){
+        if (rawData == null || rawData.equals(Variable.REDIS_EOF)) {
             _collector.ack(tuple);
-            return;
-        }
-
-        if (rawData.equals(Variable.REDIS_EOF)) {
-            _collector.emit(new Values("", Long.MAX_VALUE));
             return;
         }
 

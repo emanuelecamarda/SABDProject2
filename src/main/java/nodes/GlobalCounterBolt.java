@@ -46,7 +46,7 @@ public class GlobalCounterBolt extends BaseBasicBolt {
 
         if (lastTimestamp < currentTimestamp) {
             LOG.info("Received tick tuple, triggering emit of current rankings");
-            collector.emit(new Values(counter, lastTimestamp));
+            collector.emit(new Values(lastTimestamp, counter));
             LOG.info("Counter: " + counter);
             lastTimestamp = currentTimestamp;
             initializeCounter();

@@ -85,8 +85,14 @@ public class IntermediateCounterBolt extends BaseRichBolt {
             // Do nothing
         } else { // not tick tuple
 
-            if (lastStartTimestamp == 0)
+            if (lastStartTimestamp == 0) {
                 lastStartTimestamp = outsideWindow.getStartTimestamp();
+                while (lastStartTimestamp + 3600 * windowLengthInHours <
+                        tuple.getLongByField(FilterQ2Bolt.F_CREATE_TIME)) {
+                    outsideWindow.moveForward();
+                    lastStartTimestamp = outsideWindow.getStartTimestamp();
+                }
+            }
 
             if (tuple.getLongByField(FilterQ2Bolt.F_CREATE_TIME) > outsideWindow.getEndTimestamp()) {
                 LOG.info("Triggering current window tuple.");
