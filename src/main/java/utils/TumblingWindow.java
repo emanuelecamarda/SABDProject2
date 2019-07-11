@@ -1,7 +1,5 @@
 package utils;
 
-import nodes.FilterQ1Bolt;
-import org.apache.storm.tuple.Tuple;
 import redis.clients.jedis.Jedis;
 
 import java.io.Serializable;
@@ -13,15 +11,18 @@ public class TumblingWindow implements Serializable {
     private long endTimestamp;
     private Jedis jedis;
     int redisTimeout 	= 60000;
+    private String redisKey;
 
-    public TumblingWindow(int windowLenghtInHours, long startTimestamp, String redisUrl, int redisPort) {
+    public TumblingWindow(int windowLenghtInHours, long startTimestamp, String redisUrl, int redisPort,
+                          String redisKey) {
         this.windowLenghtInHours = windowLenghtInHours;
         this.jedis = new Jedis(redisUrl, redisPort, redisTimeout);
-        if (jedis.get(Variable.REDIS_COMMENT_COUNTER) == null) {
+        this.redisKey = redisKey;
+        if (jedis.get(redisKey) == null) {
             this.startTimestamp = startTimestamp;
-            jedis.set(Variable.REDIS_COMMENT_COUNTER, Long.valueOf(startTimestamp).toString());
+            jedis.set(redisKey, Long.valueOf(startTimestamp).toString());
         } else {
-            this.startTimestamp = Long.parseLong(jedis.get(Variable.REDIS_COMMENT_COUNTER));
+            this.startTimestamp = Long.parseLong(jedis.get(redisKey));
         }
         this.endTimestamp = startTimestamp + windowLenghtInHours * 60 * 60;
     }
@@ -31,7 +32,7 @@ public class TumblingWindow implements Serializable {
     }
 
     public long getStartTimestamp() {
-        startTimestamp = Long.parseLong(jedis.get(Variable.REDIS_COMMENT_COUNTER));
+        startTimestamp = Long.parseLong(jedis.get(redisKey));
         this.endTimestamp = startTimestamp + windowLenghtInHours * 60 * 60;
         return startTimestamp;
     }
@@ -43,12 +44,7 @@ public class TumblingWindow implements Serializable {
     public void moveForward() {
         this.startTimestamp = endTimestamp;
         this.endTimestamp += windowLenghtInHours * 60 * 60;
-        jedis.set(Variable.REDIS_COMMENT_COUNTER, Long.valueOf(startTimestamp).toString());
+        jedis.set(redisKey, Long.valueOf(startTimestamp).toString());
     }
 
-    public boolean isOutOfWindowTuple(Tuple tuple) {
-        if (tuple.getLongByField(FilterQ1Bolt.F_CREATE_TIME) > endTimestamp)
-            return true;
-        return false;
-    }
 }

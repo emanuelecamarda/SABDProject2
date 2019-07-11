@@ -26,7 +26,8 @@ public class DataSource implements Runnable {
      */
 
     private static final int TIMESPAN = 15;     // expressed in mins
-    private static final int SPEEDUP = 800;
+    private static final int SPEEDUP = 1200;
+    public static final long JAN_1_2018        = 1514764800;
 
     private Jedis jedis;
     private String filename;
@@ -54,17 +55,17 @@ public class DataSource implements Runnable {
 
         BufferedReader br = null;
         LinesBatch linesBatch;
+        long totalLines = 0;
 
         try {
             br = new BufferedReader(new FileReader(filename));
 
-            String line = br.readLine();
+            String line;
             if (this.hasHead)       // skipping header
                 line = br.readLine();
             linesBatch = new LinesBatch();
-            long batchFinalTime 	= computeBatchFinalTime(getEventTime(line));
+            long batchFinalTime 	= computeBatchFinalTime(JAN_1_2018);
             long firstSendingTime 	= System.currentTimeMillis();
-            linesBatch.addLine(line);
 
             while ((line = br.readLine()) != null) {
 
@@ -75,7 +76,9 @@ public class DataSource implements Runnable {
                     continue;
                 }
 
-                System.out.println("Sending " + linesBatch.getLines().size() + " lines");
+                totalLines += linesBatch.getLines().size();
+                System.out.println("Sending " + linesBatch.getLines().size() + " lines .... "
+                        + totalLines + " total lines sent.");
 
                 /* batch is concluded and has to be sent */
                 if (linesBatch.getLines().size() != 0)
@@ -83,34 +86,50 @@ public class DataSource implements Runnable {
 
                 /* sleep if needed */
                 long sendingTime = System.currentTimeMillis() - firstSendingTime;
-                if (sendingTime < (TIMESPAN * 60 * 1000) / SPEEDUP) {
-                    long timeToSleep = (TIMESPAN * 60 * 1000) / SPEEDUP - sendingTime;
-                    try {
-                        System.out.println("Go to sleep for " + timeToSleep + " ms");
-                        Thread.sleep(timeToSleep);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    System.err.println("Error: SPEEDUP parameter to high, cannot simulate real data stream!");
-                }
+                sleepIfNeeded(sendingTime);
 
                 /* update batch */
                 linesBatch = new LinesBatch();
                 batchFinalTime = computeBatchFinalTime(batchFinalTime);
                 firstSendingTime = System.currentTimeMillis();
+                while (eventTime > batchFinalTime) {
+                    System.out.println("Sending 0 lines .... "
+                            + totalLines + " total lines sent.");
+                    /* sleep if needed */
+                    sendingTime = System.currentTimeMillis() - firstSendingTime;
+                    sleepIfNeeded(sendingTime);
+                    batchFinalTime = computeBatchFinalTime(batchFinalTime);
+                    firstSendingTime = System.currentTimeMillis();
+                }
+
+                linesBatch.addLine(line);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         System.out.println("Finished sending data.");
-        if (br != null){  //TODO == o != ?
+        if (br != null){
             try {
                 br.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+
+    }
+
+    private void sleepIfNeeded(long sendingTime) {
+        if (sendingTime < (TIMESPAN * 60 * 1000) / SPEEDUP) {
+            long timeToSleep = (TIMESPAN * 60 * 1000) / SPEEDUP - sendingTime;
+            try {
+                System.out.println("Go to sleep for " + timeToSleep + " ms");
+                Thread.sleep(timeToSleep);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("Error: SPEEDUP parameter to high, cannot simulate real data stream!");
         }
 
     }

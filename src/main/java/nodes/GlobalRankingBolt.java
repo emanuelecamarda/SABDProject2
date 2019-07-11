@@ -31,7 +31,6 @@ public final class GlobalRankingBolt extends BaseBasicBolt {
 
         this.topN = topN;
         rankings = new Rankings(topN);
-
     }
 
     /**
@@ -42,6 +41,7 @@ public final class GlobalRankingBolt extends BaseBasicBolt {
 
         Rankings rankingsToBeMerged = (Rankings) tuple.getValueByField(IntermediateRankingBolt.F_RANKINGS);
         long currentTimestamp = tuple.getLongByField(IntermediateRankingBolt.F_START_TIMESTAMP);
+
         if (lastTimestamp == 0)
             lastTimestamp = currentTimestamp;
 
@@ -50,7 +50,6 @@ public final class GlobalRankingBolt extends BaseBasicBolt {
             collector.emit(new Values(rankings.copy(), lastTimestamp));
             LOG.info("Rankings: " + rankings);
             lastTimestamp = currentTimestamp;
-
             this.rankings = new Rankings(topN);
             LOG.info("rankings: " + rankingsToBeMerged);
             rankings.updateWith(rankingsToBeMerged);

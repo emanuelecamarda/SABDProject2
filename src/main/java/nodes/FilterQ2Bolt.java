@@ -13,20 +13,18 @@ import utils.Variable;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class FilterQ1Bolt extends BaseRichBolt {
+public class FilterQ2Bolt extends BaseRichBolt {
 
-    private static final Logger LOG = Logger.getLogger(FilterQ1Bolt.class);
+    private static final Logger LOG = Logger.getLogger(FilterQ2Bolt.class);
     private OutputCollector _collector;
     private Pattern SEPARATOR;
     public static final String F_ARTICLE_ID	    = "articleID";
     public static final String F_CREATE_TIME    = "createTime";
 
-    public FilterQ1Bolt() {
-    }
+    public FilterQ2Bolt() {}
 
     @Override
-    public void prepare(@SuppressWarnings("rawtypes") Map map, TopologyContext topologyContext,
-                        OutputCollector outputCollector) {
+    public void prepare(Map<String, Object> map, TopologyContext topologyContext, OutputCollector outputCollector) {
         this._collector = outputCollector;
         this.SEPARATOR = Pattern.compile(",");
     }
@@ -47,10 +45,12 @@ public class FilterQ1Bolt extends BaseRichBolt {
         }
 
         String[] data = SEPARATOR.split(rawData);
+        if (!data[4].equals("comment"))
+            return;
         Values values = new Values();
         values.add(data[1]);    // Article ID
         values.add(Long.parseLong(data[5]));    // Comment creation timestamp
-        LOG.info("Sending tuple: ( articleID=" + data[1] + ", createTime=" + data[5] + " )");
+        LOG.info("Sending tuple: ( createTime=" + data[5] + " )");
         _collector.emit(values);
         _collector.ack(tuple);
     }
@@ -59,5 +59,4 @@ public class FilterQ1Bolt extends BaseRichBolt {
     public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
         outputFieldsDeclarer.declare(new Fields(F_ARTICLE_ID, F_CREATE_TIME));
     }
-
 }

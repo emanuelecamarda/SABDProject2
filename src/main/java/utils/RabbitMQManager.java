@@ -163,15 +163,11 @@ public class RabbitMQManager {
         try {
 
             reopenConnectionIfNeeded();
-            final String outputFilePath = filePath;
             Channel channel = connection.createChannel();
+            final String outputFilePath = filePath;
             FileWriter writer = new FileWriter(filePath);
-            try {
-                writer.append(header).append(System.getProperty("line.separator"));
-                writer.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            writer.append(header).append(System.getProperty("line.separator"));
+            writer.close();
 
             Consumer consumer = new DefaultConsumer(channel) {
                 @Override
@@ -179,7 +175,7 @@ public class RabbitMQManager {
                                            byte[] body) throws IOException {
                     String message = new String(body, "UTF-8");
                     System.out.println(message);
-                    FileWriter writer = new FileWriter(outputFilePath);
+                    FileWriter writer = new FileWriter(outputFilePath, true);
                     writer.append(message).append(System.getProperty("line.separator"));
                     writer.close();
                 }

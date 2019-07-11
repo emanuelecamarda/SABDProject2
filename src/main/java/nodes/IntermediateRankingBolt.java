@@ -4,9 +4,7 @@ import org.apache.log4j.Logger;
 import org.apache.storm.Config;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
-import org.apache.storm.topology.BasicOutputCollector;
 import org.apache.storm.topology.OutputFieldsDeclarer;
-import org.apache.storm.topology.base.BaseBasicBolt;
 import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
@@ -15,7 +13,6 @@ import redis.clients.jedis.Jedis;
 import utils.RankableObjectWithFields;
 import utils.Rankings;
 import utils.TupleHelper;
-import utils.Variable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +25,7 @@ public class IntermediateRankingBolt extends BaseRichBolt {
     private static final int DEFAULT_COUNT = 10;
     public static final String F_RANKINGS           = "rankings";
     public static final String F_START_TIMESTAMP    = "startTimestamp";
-    private static final int DEFAULT_EMIT_FREQUENCY_IN_SECONDS = 1;
+    private static final int DEFAULT_EMIT_FREQUENCY_IN_SECONDS = 2;
 
     private final int topN;
     private Rankings rankings;
@@ -39,16 +36,18 @@ public class IntermediateRankingBolt extends BaseRichBolt {
     private OutputCollector collector;
     private String redisUrl;
     private int redisPort;
+    private String redisKey;
 
-    public IntermediateRankingBolt(String redisUrl, int redisPort) {
-        this(DEFAULT_COUNT, DEFAULT_EMIT_FREQUENCY_IN_SECONDS, redisUrl, redisPort);
+    public IntermediateRankingBolt(String redisUrl, int redisPort, String redisKey) {
+        this(DEFAULT_COUNT, DEFAULT_EMIT_FREQUENCY_IN_SECONDS, redisUrl, redisPort, redisKey);
     }
 
-    public IntermediateRankingBolt(int topN, String redisUrl, int redisPort) {
-        this(topN, DEFAULT_EMIT_FREQUENCY_IN_SECONDS, redisUrl, redisPort);
+    public IntermediateRankingBolt(int topN, String redisUrl, int redisPort, String redisKey) {
+        this(topN, DEFAULT_EMIT_FREQUENCY_IN_SECONDS, redisUrl, redisPort, redisKey);
     }
 
-    public IntermediateRankingBolt(int topN, int emitFrequencyInSeconds, String redisUrl, int redisPort) {
+    public IntermediateRankingBolt(int topN, int emitFrequencyInSeconds, String redisUrl, int redisPort,
+                                   String redisKey) {
 
         if (topN < 1) {
             throw new IllegalArgumentException("topN must be >= 1 (you requested " + topN + ")");
@@ -64,7 +63,7 @@ public class IntermediateRankingBolt extends BaseRichBolt {
         rankings = new Rankings(this.topN);
         this.redisUrl = redisUrl;
         this.redisPort = redisPort;
-
+        this.redisKey = redisKey;
     }
 
     /**
@@ -85,21 +84,21 @@ public class IntermediateRankingBolt extends BaseRichBolt {
 
             // initialize last timestamp
             if (getLastGlobalTimestamp() == 0) {
-                long lastGlobalTimestamp = tuple.getLongByField(MyCommentCounterBolt.F_TIMESTAMP);
-                jedis.set(Variable.REDIS_INTER_RANKER, Long.valueOf(lastGlobalTimestamp).toString());
+                long lastGlobalTimestamp = tuple.getLongByField(CommentCounterBolt.F_TIMESTAMP);
+                jedis.set(redisKey, Long.valueOf(lastGlobalTimestamp).toString());
             }
 
             if (lastTimestamp == 0)
                 lastTimestamp = getLastGlobalTimestamp();
 
-            if (lastTimestamp < tuple.getLongByField(MyCommentCounterBolt.F_TIMESTAMP)) {
+            if (lastTimestamp < tuple.getLongByField(CommentCounterBolt.F_TIMESTAMP)) {
                 LOG.info("Move window, emitting current rankings");
                 collector.emit(new Values(rankings.copy(), lastTimestamp));
                 LOG.info("Rankings: " + rankings);
                 // case first tuple out of window
                 if (lastTimestamp == getLastGlobalTimestamp()) {
-                    long lastGlobalTimestamp = tuple.getLongByField(MyCommentCounterBolt.F_TIMESTAMP);
-                    jedis.set(Variable.REDIS_INTER_RANKER, Long.valueOf(lastGlobalTimestamp).toString());
+                    long lastGlobalTimestamp = tuple.getLongByField(CommentCounterBolt.F_TIMESTAMP);
+                    jedis.set(redisKey, Long.valueOf(lastGlobalTimestamp).toString());
                 }
                 lastTimestamp = getLastGlobalTimestamp();
                 this.rankings = new Rankings(topN);
@@ -117,9 +116,9 @@ public class IntermediateRankingBolt extends BaseRichBolt {
     }
 
     private long getLastGlobalTimestamp() {
-        if (jedis.get(Variable.REDIS_INTER_RANKER) == null)
+        if (jedis.get(redisKey) == null)
             return 0;
-        else return Long.parseLong(jedis.get(Variable.REDIS_INTER_RANKER));
+        else return Long.parseLong(jedis.get(redisKey));
     }
 
     @Override
@@ -138,4 +137,5 @@ public class IntermediateRankingBolt extends BaseRichBolt {
         this.collector = collector;
         jedis = new Jedis(redisUrl, redisPort, redisTimeout);
     }
+
 }

@@ -37,7 +37,7 @@ public class ExternalConsumer {
         }
 
         if (queryNumber == 1) {
-            header = "ts, artID_1, nCmnt_1, artID_2, nCmnt_2, artID_3, nCmnt_3";
+            header = Variable.HEADER_QUERY1;
             switch (windowSize) {
                 case 1:
                     rabbitMQQueue = Variable.RABBITMQ_QUEUE_Q1_1HOUR;
@@ -53,8 +53,7 @@ public class ExternalConsumer {
                     break;
             }
         } else {
-            header = "ts ,count_h00, count_h02, count_h04, count_h06, count_h08, count_h10, count_h12, count_h14, " +
-                    "count_h16, count_h18, count_h20, count_h22";
+            header = Variable.HEADER_QUERY2;
             switch (windowSize) {
                 case 1:
                     rabbitMQQueue = Variable.RABBITMQ_QUEUE_Q2_24HOUR;
