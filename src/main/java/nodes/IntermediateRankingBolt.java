@@ -13,7 +13,6 @@ import redis.clients.jedis.Jedis;
 import utils.RankableObjectWithFields;
 import utils.Rankings;
 import utils.TupleHelper;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -73,9 +72,9 @@ public class IntermediateRankingBolt extends BaseRichBolt {
     public final void execute(Tuple tuple) {
 
         if (TupleHelper.isTickTuple(tuple) && lastTimestamp != 0 && lastTimestamp < getLastGlobalTimestamp()) {
-            LOG.info("Move window, emitting current rankings");
+            LOG.debug("Move window, emitting current rankings");
             collector.emit(new Values(rankings.copy(), lastTimestamp));
-            LOG.info("Rankings: " + rankings);
+            LOG.debug("Rankings: " + rankings);
             lastTimestamp = getLastGlobalTimestamp();
             this.rankings = new Rankings(topN);
         } else if (TupleHelper.isTickTuple(tuple)){ // lastTimestamp == lastGlobalTimestamp
@@ -92,9 +91,9 @@ public class IntermediateRankingBolt extends BaseRichBolt {
                 lastTimestamp = getLastGlobalTimestamp();
 
             if (lastTimestamp < tuple.getLongByField(CommentCounterBolt.F_TIMESTAMP)) {
-                LOG.info("Move window, emitting current rankings");
+                LOG.debug("Move window, emitting current rankings");
                 collector.emit(new Values(rankings.copy(), lastTimestamp));
-                LOG.info("Rankings: " + rankings);
+                LOG.debug("Rankings: " + rankings);
                 // case first tuple out of window
                 if (lastTimestamp == getLastGlobalTimestamp()) {
                     long lastGlobalTimestamp = tuple.getLongByField(CommentCounterBolt.F_TIMESTAMP);
@@ -103,11 +102,11 @@ public class IntermediateRankingBolt extends BaseRichBolt {
                 lastTimestamp = getLastGlobalTimestamp();
                 this.rankings = new Rankings(topN);
                 RankableObjectWithFields rankable = RankableObjectWithFields.from(tuple);
-                LOG.info("rankable: " + rankable);
+                LOG.debug("rankable: " + rankable);
                 rankings.updateWith(rankable);
             } else {
                 RankableObjectWithFields rankable = RankableObjectWithFields.from(tuple);
-                LOG.info("rankable: " + rankable);
+                LOG.debug("rankable: " + rankable);
                 rankings.updateWith(rankable);
             }
 

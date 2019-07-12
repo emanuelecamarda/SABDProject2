@@ -127,12 +127,6 @@ public class Rankings implements Serializable {
         }
     }
 
-    /**
-     * Removes all object in rankings
-     * @return
-     */
-    public void removeAll() { this.rankedItems.removeAll(rankedItems); }
-
     public String toString() {
         return rankedItems.toString();
     }

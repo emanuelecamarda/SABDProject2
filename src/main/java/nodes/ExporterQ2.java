@@ -8,7 +8,6 @@ import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import utils.RabbitMQManager;
-
 import java.util.Map;
 
 public class ExporterQ2 extends BaseRichBolt {
@@ -41,17 +40,17 @@ public class ExporterQ2 extends BaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
 
-        LOG.info("Exp: rec1 = " + tuple.getValueByField(GlobalCounterBolt.F_COUNTS));
+        LOG.debug("Exp: rec1 = " + tuple.getValueByField(GlobalCounterBolt.F_COUNTS));
         Long[] counts = (Long[]) tuple.getValueByField(GlobalCounterBolt.F_COUNTS);
 
-        LOG.info("Exp: rec2 = " + counts);
+        LOG.debug("Exp: rec2 = " + counts);
 
         String raw = tuple.getLongByField(GlobalCounterBolt.F_TIMESTAMP).toString();
         for (int i = 0; i < counts.length; i++){
             raw += "," + counts[i];
         }
 
-        LOG.info("Exp: rec3 = " + raw);
+        LOG.debug("Exp: rec3 = " + raw);
         rabbitmq.send(raw);
         collector.ack(tuple);
     }

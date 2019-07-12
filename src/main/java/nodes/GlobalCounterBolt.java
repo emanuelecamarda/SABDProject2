@@ -7,7 +7,6 @@ import org.apache.storm.topology.base.BaseBasicBolt;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
-import utils.Rankings;
 
 public class GlobalCounterBolt extends BaseBasicBolt {
 
@@ -45,15 +44,15 @@ public class GlobalCounterBolt extends BaseBasicBolt {
             lastTimestamp = currentTimestamp;
 
         if (lastTimestamp < currentTimestamp) {
-            LOG.info("Received tick tuple, triggering emit of current rankings");
+            LOG.debug("Received tick tuple, triggering emit of current rankings");
             collector.emit(new Values(lastTimestamp, counter));
-            LOG.info("Counter: " + counter);
+            LOG.debug("Counter: " + counter);
             lastTimestamp = currentTimestamp;
             initializeCounter();
-            LOG.info("Counts: " + countsToBeMerged);
+            LOG.debug("Counts: " + countsToBeMerged);
             updateCounter(countsToBeMerged);
         } else {
-            LOG.info("Counts: " + countsToBeMerged);
+            LOG.debug("Counts: " + countsToBeMerged);
             updateCounter(countsToBeMerged);
         }
     }

@@ -1,7 +1,0 @@
-    - Log files are saved from storm in the directories /logs.
-        In particular for workers, log are save in /logs/workers-artifacts/query1-1-1562341712/6700/worker.log
-
-    - TODO:
-        - iniziare a scrivere la query2
-        - sistemare codice eliminando classi non usate e pulendo le usate
-        - cambiare log.info con log.debug

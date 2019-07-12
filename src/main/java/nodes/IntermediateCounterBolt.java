@@ -12,7 +12,6 @@ import org.apache.storm.tuple.Values;
 import utils.CircularTumblingWindow;
 import utils.TumblingWindow;
 import utils.TupleHelper;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -77,7 +76,7 @@ public class IntermediateCounterBolt extends BaseRichBolt {
 
         if (TupleHelper.isTickTuple(tuple) && lastStartTimestamp != 0 &&
                 outsideWindow.getStartTimestamp() != lastStartTimestamp) {
-            LOG.info("Triggering current window tuple.");
+            LOG.debug("Triggering current window tuple.");
             _collector.emit(new Values(counter, lastStartTimestamp));
             initializeCounter();
             lastStartTimestamp = outsideWindow.getStartTimestamp();
@@ -95,12 +94,12 @@ public class IntermediateCounterBolt extends BaseRichBolt {
             }
 
             if (tuple.getLongByField(FilterQ2Bolt.F_CREATE_TIME) > outsideWindow.getEndTimestamp()) {
-                LOG.info("Triggering current window tuple.");
+                LOG.debug("Triggering current window tuple.");
                 _collector.emit(new Values(counter, lastStartTimestamp));
                 initializeCounter();
                 // case first tuple out of window, need to move window
                 if (lastStartTimestamp == outsideWindow.getStartTimestamp()) {
-                    LOG.info("Moving window forward");
+                    LOG.debug("Moving window forward");
                     outsideWindow.moveForward();
                     while (tuple.getLongByField(FilterQ2Bolt.F_CREATE_TIME) > outsideWindow.getEndTimestamp()) {
                         outsideWindow.moveForward();

@@ -1,5 +1,4 @@
 import com.google.gson.Gson;
-import org.apache.storm.utils.Time;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import utils.TConf;
@@ -135,31 +134,23 @@ public class DataSource implements Runnable {
     }
 
     private void send(LinesBatch linesBatch) throws JedisConnectionException {
-
         String consumed = jedis.get(Variable.REDIS_CONSUMED);
         String data = jedis.get(Variable.REDIS_DATA);
 
         /* Check erroneous situation */
         if (data != null && consumed != null){
-
             jedis.del(Variable.REDIS_CONSUMED);
             jedis.del(Variable.REDIS_DATA);
-
         }
 
         /* Wait if the consumer is still reading data */
         if (data != null && consumed == null){
-
             while (consumed == null){
-
                 try {
                     Thread.sleep(Variable.SHORT_SLEEP);
                 } catch (InterruptedException e) { }
-
                 consumed = jedis.get(Variable.REDIS_CONSUMED);
-
             }
-
         }
 
         /* Remove lock from Redis */
@@ -168,7 +159,6 @@ public class DataSource implements Runnable {
         /* Send data */
         String serializedBatch = gson.toJson(linesBatch);
         jedis.set(Variable.REDIS_DATA, serializedBatch);
-
     }
 
     private long getEventTime(String line){

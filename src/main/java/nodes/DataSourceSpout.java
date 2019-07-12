@@ -12,7 +12,6 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 import utils.Variable;
 import utils.LinesBatch;
 import org.apache.storm.topology.base.BaseRichSpout;
-
 import java.util.Map;
 
 public class DataSourceSpout extends BaseRichSpout {
@@ -70,7 +69,7 @@ public class DataSourceSpout extends BaseRichSpout {
                 values.add(Long.toString(msgId));
                 values.add(row);
                 values.add(now);
-                LOG.info("Sending row = \"" + row + "\"");
+                LOG.debug("Sending row = \"" + row + "\"");
                 this._collector.emit(values, msgId);
             }
 

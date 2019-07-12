@@ -9,7 +9,6 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 import utils.Variable;
-
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -45,7 +44,7 @@ public class FilterQ1Bolt extends BaseRichBolt {
         Values values = new Values();
         values.add(data[1]);    // Article ID
         values.add(Long.parseLong(data[5]));    // Comment creation timestamp
-        LOG.info("Sending tuple: ( articleID=" + data[1] + ", createTime=" + data[5] + " )");
+        LOG.debug("Sending tuple: ( articleID=" + data[1] + ", createTime=" + data[5] + " )");
         _collector.emit(values);
         _collector.ack(tuple);
     }

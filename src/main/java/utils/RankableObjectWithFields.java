@@ -3,7 +3,6 @@ package utils;
 import org.apache.storm.shade.com.google.common.collect.ImmutableList;
 import org.apache.storm.shade.com.google.common.collect.Lists;
 import org.apache.storm.tuple.Tuple;
-
 import java.io.Serializable;
 import java.util.List;
 

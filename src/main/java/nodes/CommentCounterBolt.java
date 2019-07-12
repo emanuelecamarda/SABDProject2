@@ -11,7 +11,6 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 import utils.TumblingWindow;
 import utils.TupleHelper;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,6 +24,7 @@ public class CommentCounterBolt extends BaseRichBolt {
     private static final int DEFAULT_SLIDING_WINDOW_IN_HOUR = 24; // 24 hour window
     private final int windowLengthInHours;
     private static final int DEFAULT_EMIT_FREQUENCY_IN_SECONDS = 1;
+    
     private OutputCollector _collector;
     private Map<String,Long> counter;
     private TumblingWindow window = null;
@@ -75,7 +75,7 @@ public class CommentCounterBolt extends BaseRichBolt {
 
         if (TupleHelper.isTickTuple(tuple) && lastStartTimestamp != 0 &&
                 window.getStartTimestamp() != lastStartTimestamp) {
-            LOG.info("Triggering current window tuple.");
+            LOG.debug("Triggering current window tuple.");
             emit();
             lastStartTimestamp = window.getStartTimestamp();
         } else if (TupleHelper.isTickTuple(tuple)){ // lastStartTimestamp == lastGlobalTimestamp
@@ -91,11 +91,11 @@ public class CommentCounterBolt extends BaseRichBolt {
             }
 
             if (lastStartTimestamp + 3600 * windowLengthInHours < tuple.getLongByField(FilterQ1Bolt.F_CREATE_TIME)) {
-                LOG.info("Triggering current window tuple.");
+                LOG.debug("Triggering current window tuple.");
                 emit();
                 // case first tuple out of window, need to move window
                 if (lastStartTimestamp == window.getStartTimestamp()) {
-                    LOG.info("Moving window forward");
+                    LOG.debug("Moving window forward");
                     window.moveForward();
                     while (tuple.getLongByField(FilterQ1Bolt.F_CREATE_TIME) > window.getEndTimestamp()) {
                         window.moveForward();
@@ -126,7 +126,7 @@ public class CommentCounterBolt extends BaseRichBolt {
         for (Map.Entry<String,Long> entry: counter.entrySet()) {
             String articleID = entry.getKey();
             Long count = entry.getValue();
-            LOG.info("Emitting tuple ( articleID=" + articleID + ", count=" + count + ", timestamp="
+            LOG.debug("Emitting tuple ( articleID=" + articleID + ", count=" + count + ", timestamp="
                     + lastStartTimestamp + " )");
             System.out.println("Emitting tuple ( articleID=" + articleID + ", count=" + count + ", timestamp="
                     + lastStartTimestamp + " )");

@@ -10,7 +10,6 @@ import org.apache.storm.tuple.Tuple;
 import utils.RabbitMQManager;
 import utils.Rankable;
 import utils.Rankings;
-
 import java.util.Map;
 
 public class ExporterQ1 extends BaseRichBolt {
@@ -49,11 +48,11 @@ public class ExporterQ1 extends BaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
 
-        LOG.info("Exp: rec1 = " + tuple.getValueByField(GlobalRankingBolt.F_RANKINGS));
+        LOG.debug("Exp: rec1 = " + tuple.getValueByField(GlobalRankingBolt.F_RANKINGS));
         Rankings rankings  = (Rankings) tuple.getValueByField(GlobalRankingBolt.F_RANKINGS);
 
-        LOG.info("Exp: rec2 = " + rankings);
-        LOG.info("Exp: rec3 = " + rankings.getRankings());
+        LOG.debug("Exp: rec2 = " + rankings);
+        LOG.debug("Exp: rec3 = " + rankings.getRankings());
 
         int i = 0;
         String raw = tuple.getLongByField(GlobalRankingBolt.F_START_TIMESTAMP).toString();
@@ -66,7 +65,7 @@ public class ExporterQ1 extends BaseRichBolt {
             i++;
         }
 
-        LOG.info("Exp: rec4 = " + raw);
+        LOG.debug("Exp: rec4 = " + raw);
         rabbitmq.send(raw);
         collector.ack(tuple);
 

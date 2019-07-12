@@ -1,7 +1,6 @@
 package utils;
 
 import com.rabbitmq.client.*;
-
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
@@ -13,7 +12,6 @@ public class RabbitMQManager {
     private String password;
     private ConnectionFactory factory;
     private Connection connection;
-
     private String defaultQueue;
 
     public RabbitMQManager(String host, String username, String password, String queue) {
@@ -28,7 +26,6 @@ public class RabbitMQManager {
 
         this.initialize();
         this.initializeQueue(defaultQueue);
-
     }
 
     private void initializeQueue(String queue){

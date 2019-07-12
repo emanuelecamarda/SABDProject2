@@ -46,16 +46,16 @@ public final class GlobalRankingBolt extends BaseBasicBolt {
             lastTimestamp = currentTimestamp;
 
         if (lastTimestamp < currentTimestamp) {
-            LOG.info("Received tick tuple, triggering emit of current rankings");
+            LOG.debug("Received tick tuple, triggering emit of current rankings");
             collector.emit(new Values(rankings.copy(), lastTimestamp));
-            LOG.info("Rankings: " + rankings);
+            LOG.debug("Rankings: " + rankings);
             lastTimestamp = currentTimestamp;
             this.rankings = new Rankings(topN);
-            LOG.info("rankings: " + rankingsToBeMerged);
+            LOG.debug("rankings: " + rankingsToBeMerged);
             rankings.updateWith(rankingsToBeMerged);
             rankings.pruneZeroCounts();
         } else {
-            LOG.info("rankings: " + rankingsToBeMerged);
+            LOG.debug("rankings: " + rankingsToBeMerged);
             rankings.updateWith(rankingsToBeMerged);
             rankings.pruneZeroCounts();
         }

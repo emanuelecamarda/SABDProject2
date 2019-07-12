@@ -4,22 +4,22 @@ import java.io.Serializable;
 
 public class CircularTumblingWindow implements Serializable {
 
-    private int windowLenghtInHours;
+    private int windowLengthInHours;
     private long startTimestamp;
     private long endTimestamp;
     private int maxWindowSlot;
     private int slot;
 
-    public CircularTumblingWindow(int windowLenghtInHours, long startTimestamp, int maxWindowSlot) {
-        this.windowLenghtInHours = windowLenghtInHours;
+    public CircularTumblingWindow(int windowLengthInHours, long startTimestamp, int maxWindowSlot) {
+        this.windowLengthInHours = windowLengthInHours;
         this.startTimestamp = startTimestamp;
-        this.endTimestamp = startTimestamp + windowLenghtInHours * 60 * 60;
+        this.endTimestamp = startTimestamp + windowLengthInHours * 60 * 60;
         this.maxWindowSlot = maxWindowSlot;
         this.slot = 0;
     }
 
-    public int getWindowLenghtInHours() {
-        return windowLenghtInHours;
+    public int getWindowLengthInHours() {
+        return windowLengthInHours;
     }
 
     public long getStartTimestamp() {
@@ -37,7 +37,7 @@ public class CircularTumblingWindow implements Serializable {
     public void moveForward() {
         this.slot = (slot + 1) % maxWindowSlot;
         this.startTimestamp = endTimestamp;
-        this.endTimestamp += windowLenghtInHours * 60 * 60;
+        this.endTimestamp += windowLengthInHours * 60 * 60;
     }
 
 }
